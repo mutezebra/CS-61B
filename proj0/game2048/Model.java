@@ -5,7 +5,7 @@ import java.util.Observable;
 
 
 /** The state of a game of 2048.
- *  @author TODO: YOUR NAME HERE
+ *  @author mutezebra
  */
 public class Model extends Observable {
     /** Current contents of the board. */
@@ -113,11 +113,49 @@ public class Model extends Observable {
         // TODO: Modify this.board (and perhaps this.score) to account
         // for the tilt to the Side SIDE. If the board changed, set the
         // changed local variable to true.
+        this.board.startViewingFrom(side);
+
+        for (int col = 0; col < board.size(); col++) {
+            boolean[] spaceHaveChanged = new boolean[board.size()];
+            int boundary = board.size();
+            for (int row = board.size()-1; row >=0; row--) {
+                Tile t = this.board.tile(col, row);
+                if (t == null) {
+                    continue;
+                }
+                // check back
+                int movedRow = -1,movedCol = -1;
+                for (int now = row+1;now < board.size(); now++) {
+                    Tile upTile = this.board.tile(col,now);
+                    if (upTile == null) {
+                        movedRow = now;
+                        movedCol = col;
+                        continue;
+                    }
+                    if (upTile.value() == t.value()) {
+                        if (now >= boundary) {
+                            break;
+                        }
+                        movedRow = now;
+                        movedCol = col;
+                        boundary = movedRow;
+                        this.score += t.value()*2;
+                        break;
+                    }
+                    break;
+                }
+                if (movedRow != -1) {
+                    this.board.move(movedCol,movedRow,t);
+                    changed = true;
+                }
+            }
+        }
 
         checkGameOver();
         if (changed) {
             setChanged();
         }
+        this.board.setViewingPerspective(Side.NORTH);
         return changed;
     }
 
@@ -137,7 +175,14 @@ public class Model extends Observable {
      *  Empty spaces are stored as null.
      * */
     public static boolean emptySpaceExists(Board b) {
-        // TODO: Fill in this function.
+        for (int col = 0;col < b.size();col++) {
+            for (int row = 0;row < b.size();row++) {
+                if (b.tile(row,col) == null) {
+                    return true;
+                }
+            }
+        }
+
         return false;
     }
 
@@ -147,7 +192,15 @@ public class Model extends Observable {
      * given a Tile object t, we get its value with t.value().
      */
     public static boolean maxTileExists(Board b) {
-        // TODO: Fill in this function.
+        for (int col = 0;col < b.size();col++) {
+            for (int row = 0;row < b.size();row++) {
+                Tile tile = b.tile(row,col);
+                if (tile != null && tile.value() == MAX_PIECE) {
+                    return true;
+                }
+            }
+        }
+
         return false;
     }
 
@@ -158,7 +211,27 @@ public class Model extends Observable {
      * 2. There are two adjacent tiles with the same value.
      */
     public static boolean atLeastOneMoveExists(Board b) {
-        // TODO: Fill in this function.
+        if (emptySpaceExists(b)) { // if board have empty tile
+            return true;
+        }
+
+        for (int row = 0;row < b.size()-1;row++) {
+            for (int col = 0;col < b.size();col++) {
+                Tile tile = b.tile(row,col);
+                Tile downTile = b.tile(row+1,col);
+                if (tile.value() == downTile.value()) {
+                    return true;
+                }
+                if (col == b.size()-1) {
+                    continue;
+                }
+                Tile rightTile = b.tile(row,col+1);
+                if (tile.value() == rightTile.value()) {
+                    return true;
+                }
+            }
+        }
+
         return false;
     }
 
